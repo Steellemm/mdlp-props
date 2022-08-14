@@ -9,18 +9,17 @@ import javax.swing.tree.DefaultTreeModel
 class MDLPPropsWindow {
     lateinit var content: JPanel
     lateinit var zkTree: JTree
-    lateinit var envComboBox: JComboBox<String>
     lateinit var alias: JTextField
     lateinit var envTable: JTable
     val envTableModel = EnvInfoTableModel()
 
     init {
         val envs = getStateInstance().envMap.keys
-        envs.forEach { envComboBox.addItem(it)}
         zkTree.model = DefaultTreeModel(DefaultMutableTreeNode())
         envTableModel.envSet = envs.toList()
         envTable.model = envTableModel
         envTable.columnModel.getColumn(0).maxWidth = 240
+        alias.isEditable = false
     }
 
     fun reload(node: DefaultMutableTreeNode) {

@@ -1,32 +1,58 @@
 package org.steellemm.mdlpprops
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.search.FilenameIndex
-import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.search.ProjectScopeBuilderImpl
 import org.steellemm.mdlpprops.settings.AppSettingsState
 import org.steellemm.mdlpprops.ui.PropsNode
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.util.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
 fun getStateInstance(): AppSettingsState = ApplicationManager.getApplication().getService(AppSettingsState::class.java)
 
-fun getValueMap(name: String, project: Project): Map<String, String> {
-    var valuesFile: VirtualFile? = null
-    ApplicationManager.getApplication().runReadAction {
-        valuesFile =
-            FilenameIndex.getVirtualFilesByName(name, GlobalSearchScope.projectScope(project))
-                .firstOrNull() ?: throw IllegalArgumentException("File has not been found")
+fun PropsNode.addPropNode(nodeName: String): PropsNode {
+    val child = this.children().asSequence().map { it as PropsNode }.map { it.nodeName }.find { it == nodeName }
+    if (child == null) {
+        val propsNode = PropsNode(this.path + '/' + nodeName, nodeName)
+        this.add(propsNode)
+        return propsNode
     }
-    if (valuesFile == null) {
-        throw IllegalStateException("File $name can't be read")
+    return child as PropsNode
+}
+
+fun VirtualFile.document(): Document {
+    return FileDocumentManager.getInstance().getDocument(this)
+        ?: throw IllegalArgumentException("File has not been found")
+}
+fun VirtualFile.sortFile() {
+    val document = this.document()
+    val startLine = 0
+    val lastLine = document.lineCount - 1
+    val lines = arrayOfNulls<String>(lastLine + 1)
+    for (i in 0..lastLine) {
+        val line = i + startLine
+        lines[i] = document.getText(TextRange(document.getLineStartOffset(line), document.getLineEndOffset(line)))
     }
-    return getValueMap(valuesFile!!.inputStream)
+    Arrays.parallelSort<String>(lines)
+    val newContent = java.lang.String.join("\n", *lines).trimIndent()
+    val toReplaceStart = document.getLineStartOffset(startLine)
+    val toReplaceEnd = document.getLineEndOffset(lastLine)
+    document.replaceString(toReplaceStart, toReplaceEnd, newContent)
+}
+
+fun addLineToFile(line: String, file: VirtualFile) {
+    val document = file.document()
+    document.insertString(0, line + '\n')
+}
+
+fun getValueMap(valuesFile: VirtualFile): Map<String, String> {
+    return getValueMap(valuesFile.inputStream)
 }
 
 fun getValueMap(inputStream: InputStream): Map<String, String> {
@@ -35,39 +61,33 @@ fun getValueMap(inputStream: InputStream): Map<String, String> {
     }
 }
 
-
-fun getTreeFromTemplate(project: Project): Pair<PropsNode, MutableMap<String, PropsNode>> {
-    val buildProjectScope = ProjectScopeBuilderImpl(project).buildProjectScope()
-    val template =
-        FilenameIndex.getVirtualFilesByName("template.yml", buildProjectScope)
-            .firstOrNull() ?: return Pair(PropsNode(), mutableMapOf())
+fun getTreeFromTemplate(template: VirtualFile): Pair<PropsNode, MutableMap<String, PropsNode>> {
     return getTreeFromTemplate(template.inputStream)
 }
 
 fun getTreeFromTemplate(stream: InputStream): Pair<PropsNode, MutableMap<String, PropsNode>> {
-    val nodesMap: MutableMap<String, PropsNode> = mutableMapOf("" to PropsNode())
+    var lastSavedNode = PropsNode(nodeName = "")
+    val nodesMap: MutableMap<String, PropsNode> = mutableMapOf("" to lastSavedNode)
     val leavesMap: MutableMap<String, PropsNode> = mutableMapOf()
     readYamlFile(stream).use {
         it.forEach { pair ->
-            val nodes = pair.first.split("/")
-            var lastNode = ""
-            var lastSavedNode = PropsNode()
-            for (node: String in nodes) {
-                if (node == "") {
+            val nodeNames = pair.first.split("/")
+            var lastNodePath = ""
+            for (nodeName: String in nodeNames) {
+                if (nodeName == "") {
                     continue
                 }
-                val newNode  = "$lastNode/$node"
-                if (!nodesMap.containsKey(newNode)) {
-                    val root = nodesMap[lastNode] ?: throw IllegalStateException("Illegal word: ${pair.first}")
-                    lastSavedNode = PropsNode(null, node)
-                    nodesMap[newNode] = lastSavedNode
+                val newNodePath  = "$lastNodePath/$nodeName"
+                if (!nodesMap.containsKey(newNodePath)) {
+                    val root = nodesMap[lastNodePath] ?: throw IllegalStateException("Illegal key: ${pair.first}")
+                    lastSavedNode = PropsNode(newNodePath, nodeName)
+                    nodesMap[newNodePath] = lastSavedNode
                     root.add(lastSavedNode)
                 }
-                lastNode = newNode
+                lastNodePath = newNodePath
             }
-            val leafNode = PropsNode(pair.second)
-            lastSavedNode.add(leafNode)
-            leavesMap[pair.second] = leafNode
+            lastSavedNode.alias = pair.second
+            leavesMap[pair.second] = lastSavedNode
         }
     }
     return Pair(nodesMap["/mdlp"] ?: throw IllegalStateException(), leavesMap)

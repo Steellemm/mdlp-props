@@ -2,6 +2,7 @@ package org.steellemm.mdlpprops.tool
 
 import com.intellij.openapi.ui.Messages
 import org.steellemm.mdlpprops.ui.NewLeafDialog
+import org.steellemm.mdlpprops.ui.PropsNode
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -32,6 +33,11 @@ class TreeRightClickEvent(private val tree: JTree, private val dialog: NewLeafDi
             if (paths.isNullOrEmpty()) {
                 return
             }
+            val node = paths.last().lastPathComponent as PropsNode
+            if (node.isLeaf) {
+                return
+            }
+            dialog.loadNode(node)
             menu.show(tree, e.x, e.y)
         }
     }

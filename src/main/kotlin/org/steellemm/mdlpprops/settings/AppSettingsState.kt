@@ -28,4 +28,8 @@ class AppSettingsState: PersistentStateComponent<AppSettingsState> {
     override fun loadState(state: AppSettingsState) {
         XmlSerializerUtil.copyBean(state, this);
     }
+
+    fun getEnvs(): List<String> {
+        return envMap.keys.toList()
+    }
 }

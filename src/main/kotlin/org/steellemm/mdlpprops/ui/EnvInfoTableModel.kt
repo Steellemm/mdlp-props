@@ -4,6 +4,10 @@ import javax.swing.table.DefaultTableModel
 
 class EnvInfoTableModel(var envSet: List<String> = emptyList()): DefaultTableModel(arrayOf("Environment", "Value"), 0) {
 
+    init {
+        setValues(emptyMap())
+    }
+
     override fun isCellEditable(row: Int, column: Int): Boolean {
         return column == 1
     }
