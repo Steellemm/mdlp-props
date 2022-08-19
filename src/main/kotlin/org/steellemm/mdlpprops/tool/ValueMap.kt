@@ -46,7 +46,7 @@ class ValueMap(
             addLineToFile("\"$path\": \"{{ $alias }}\"", templateFile)
             templateFile.sortFile()
             values.entries.forEach {
-                addLineToFile("$alias: '${it.value}'", getVFile(it.key))
+                addLineToFile(valueLine(alias, it.value), getVFile(it.key))
                 getVFile(it.key).sortFile()
             }
         }
@@ -69,13 +69,14 @@ class ValueMap(
     }
 
     fun editValue(alias: String, env: String, newValue: String) {
-
+        WriteCommandAction.runWriteCommandAction(project) {
+            getVFile(env).changeValue(alias, newValue)
+        }
+        values[alias]?.put(env, newValue)
     }
 
     private fun getVFile(env: String): VirtualFile {
-        return files[env] ?: throw IllegalArgumentException("Illegal enviroment name: $env")
+        return files[env] ?: throw IllegalArgumentException("Illegal environment name: $env")
     }
-
-
 
 }

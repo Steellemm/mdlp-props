@@ -3,6 +3,7 @@ package org.steellemm.mdlpprops
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import org.steellemm.mdlpprops.settings.AppSettingsState
@@ -30,18 +31,34 @@ fun VirtualFile.document(): Document {
     return FileDocumentManager.getInstance().getDocument(this)
         ?: throw IllegalArgumentException("File has not been found")
 }
+
+fun VirtualFile.changeValue(alias: String, newValue: String) {
+    val document = this.document()
+    val searchLine = "$alias:"
+    val offset = searchLine.length
+    val foundLine = IntRange(0, document.lineCount).find {
+        val lineStartOffset = document.getLineStartOffset(it)
+        document.getText(TextRange(lineStartOffset, lineStartOffset + offset)) == searchLine
+    } ?: throw IllegalStateException("Line has not been found: $searchLine")
+
+    val newContent = valueLine(alias, newValue)
+    val toReplaceStart = document.getLineStartOffset(foundLine)
+    val toReplaceEnd = document.getLineEndOffset(foundLine)
+    document.replaceString(toReplaceStart, toReplaceEnd, newContent)
+}
+
+fun valueLine(alias: String, value: String) = "$alias: '$value'"
+
 fun VirtualFile.sortFile() {
     val document = this.document()
-    val startLine = 0
     val lastLine = document.lineCount - 1
     val lines = arrayOfNulls<String>(lastLine + 1)
     for (i in 0..lastLine) {
-        val line = i + startLine
-        lines[i] = document.getText(TextRange(document.getLineStartOffset(line), document.getLineEndOffset(line)))
+        lines[i] = document.getText(TextRange(document.getLineStartOffset(i), document.getLineEndOffset(i)))
     }
     Arrays.parallelSort<String>(lines)
     val newContent = java.lang.String.join("\n", *lines).trimIndent()
-    val toReplaceStart = document.getLineStartOffset(startLine)
+    val toReplaceStart = document.getLineStartOffset(0)
     val toReplaceEnd = document.getLineEndOffset(lastLine)
     document.replaceString(toReplaceStart, toReplaceEnd, newContent)
 }
@@ -126,3 +143,5 @@ fun splitLine(line: String): Pair<String, String> {
     }
     return Pair(key, value.trim())
 }
+
+fun Project.isAvailable() = this.name == "mdlp-apps-config"

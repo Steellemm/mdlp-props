@@ -9,6 +9,7 @@ import org.steellemm.mdlpprops.getStateInstance
 import org.steellemm.mdlpprops.ui.MDLPPropsWindow
 import org.steellemm.mdlpprops.ui.NewLeafDialog
 import org.steellemm.mdlpprops.ui.PropsNode
+import javax.swing.event.TableModelEvent
 
 
 class PropsService(private val project: Project) {
@@ -42,6 +43,15 @@ class PropsService(private val project: Project) {
             val leaf = it?.newLeadSelectionPath?.lastPathComponent
             if (leaf != null && leaf is PropsNode && leaf.alias != null) {
                 setInfo(leaf.alias!!)
+            }
+        }
+
+        toolWindow.envTableModel.addTableModelListener {
+            if (it.type == TableModelEvent.UPDATE) {
+                val newValue = toolWindow.envTableModel.getValueAt(it.firstRow, it.column).toString()
+                val env = toolWindow.envTableModel.getValueAt(it.firstRow, 0).toString()
+                val alias = toolWindow.alias.text
+                valueMap.editValue(alias, env, newValue)
             }
         }
 
