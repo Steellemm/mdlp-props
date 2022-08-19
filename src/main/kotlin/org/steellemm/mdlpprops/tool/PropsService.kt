@@ -59,17 +59,23 @@ class PropsService(private val project: Project) {
         toolWindow.reload(valueMap.root)
     }
 
+    fun reload() {
+        valueMap.reload()
+    }
+
     private fun addFileByNameToMap(fileName: String, env: String) {
         ApplicationManager.getApplication().runReadAction {
-                val virtualFile = FilenameIndex.getVirtualFilesByName(fileName, GlobalSearchScope.projectScope(project))
-                    .firstOrNull() ?: throw IllegalArgumentException("File has not been found")
-                filesMap[env] = virtualFile
+            val virtualFile = FilenameIndex.getVirtualFilesByName(fileName, GlobalSearchScope.projectScope(project))
+                .firstOrNull() ?: throw IllegalArgumentException("File has not been found")
+            filesMap[env] = virtualFile
         }
     }
 
     private fun setInfo(alias: String) {
-        toolWindow.envTableModel.setValues(valueMap.getValues(alias))
-        toolWindow.alias.text = alias
+        valueMap.getValues(alias)?.let {
+            toolWindow.envTableModel.setValues(it)
+            toolWindow.alias.text = alias
+        }
     }
 
 }

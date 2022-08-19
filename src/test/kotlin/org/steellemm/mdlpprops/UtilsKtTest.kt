@@ -1,5 +1,6 @@
 package org.steellemm.mdlpprops
 
+import org.steellemm.mdlpprops.ui.PropsNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,7 +18,7 @@ internal class UtilsKtTest {
 
     @Test
     fun template() {
-        getTreeFromTemplate(template.byteInputStream())
+        getTreeFromTemplate(template.byteInputStream(), PropsNode("mdlp"))
     }
 
     val values = """

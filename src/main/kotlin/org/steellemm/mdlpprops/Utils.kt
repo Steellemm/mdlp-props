@@ -18,13 +18,13 @@ import kotlin.streams.asSequence
 fun getStateInstance(): AppSettingsState = ApplicationManager.getApplication().getService(AppSettingsState::class.java)
 
 fun PropsNode.addPropNode(nodeName: String): PropsNode {
-    val child = this.children().asSequence().map { it as PropsNode }.map { it.nodeName }.find { it == nodeName }
+    val child = this.children().asSequence().map { it as PropsNode }.find { it.nodeName == nodeName }
     if (child == null) {
-        val propsNode = PropsNode(this.path + '/' + nodeName, nodeName)
+        val propsNode = PropsNode(nodeName, this.path + '/' + nodeName)
         this.add(propsNode)
         return propsNode
     }
-    return child as PropsNode
+    return child
 }
 
 fun VirtualFile.document(): Document {
@@ -78,13 +78,13 @@ fun getValueMap(inputStream: InputStream): Map<String, String> {
     }
 }
 
-fun getTreeFromTemplate(template: VirtualFile): Pair<PropsNode, MutableMap<String, PropsNode>> {
-    return getTreeFromTemplate(template.inputStream)
+fun getTreeFromTemplate(template: VirtualFile, root: PropsNode): MutableMap<String, PropsNode> {
+    return getTreeFromTemplate(template.inputStream, root)
 }
 
-fun getTreeFromTemplate(stream: InputStream): Pair<PropsNode, MutableMap<String, PropsNode>> {
-    var lastSavedNode = PropsNode(nodeName = "")
-    val nodesMap: MutableMap<String, PropsNode> = mutableMapOf("" to lastSavedNode)
+fun getTreeFromTemplate(stream: InputStream, root: PropsNode): MutableMap<String, PropsNode> {
+    val nodesMap: MutableMap<String, PropsNode> = mutableMapOf("" to PropsNode(nodeName = ""), root.path to root)
+    var lastSavedNode = root
     val leavesMap: MutableMap<String, PropsNode> = mutableMapOf()
     readYamlFile(stream).use {
         it.forEach { pair ->
@@ -96,10 +96,10 @@ fun getTreeFromTemplate(stream: InputStream): Pair<PropsNode, MutableMap<String,
                 }
                 val newNodePath  = "$lastNodePath/$nodeName"
                 if (!nodesMap.containsKey(newNodePath)) {
-                    val root = nodesMap[lastNodePath] ?: throw IllegalStateException("Illegal key: ${pair.first}")
-                    lastSavedNode = PropsNode(newNodePath, nodeName)
+                    val node = nodesMap[lastNodePath] ?: throw IllegalStateException("Illegal key: ${pair.first}")
+                    lastSavedNode = PropsNode(nodeName, newNodePath)
                     nodesMap[newNodePath] = lastSavedNode
-                    root.add(lastSavedNode)
+                    node.add(lastSavedNode)
                 }
                 lastNodePath = newNodePath
             }
@@ -107,11 +107,12 @@ fun getTreeFromTemplate(stream: InputStream): Pair<PropsNode, MutableMap<String,
             leavesMap[pair.second] = lastSavedNode
         }
     }
-    return Pair(nodesMap["/mdlp"] ?: throw IllegalStateException(), leavesMap)
+    return leavesMap
 }
 
 fun readYamlFile(inputStream: InputStream): Stream<Pair<String, String>> {
     return BufferedReader(InputStreamReader(inputStream)).lines()
+        .filter { it.isNotBlank() }
         .map { splitLine(it) }
 }
 

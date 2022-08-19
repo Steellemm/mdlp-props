@@ -8,23 +8,31 @@ import org.steellemm.mdlpprops.ui.PropsNode
 import javax.swing.JTree
 
 class ValueMap(
-    val project: Project,
-    val files: MutableMap<String, VirtualFile>,
-    val templateFile: VirtualFile,
-    val zkTree: JTree
+    private val project: Project,
+    private val files: MutableMap<String, VirtualFile>,
+    private val templateFile: VirtualFile,
+    private val zkTree: JTree
 ) {
 
     /**
      * alias to (env to value)
      */
     private val values: MutableMap<String, MutableMap<String, String>> = mutableMapOf()
-    private val leavesMap: MutableMap<String, PropsNode>
-    val root: PropsNode
+    private val leavesMap: MutableMap<String, PropsNode> = mutableMapOf()
+    val root: PropsNode = PropsNode("mdlp")
+
+    private val pathReg = Regex("[a-zA-Z/\\-_]*")
+    private val aliasReg = Regex("[a-zA-Z_]*")
 
     init {
-        val ans = getTreeFromTemplate(templateFile)
-        root = ans.first
-        leavesMap = ans.second
+        reload()
+    }
+
+    fun reload() {
+        leavesMap.clear()
+        values.clear()
+        root.removeAllChildren()
+        leavesMap.putAll(getTreeFromTemplate(templateFile, root))
         getStateInstance().envMap.forEach { envToFileName ->
             files[envToFileName.key]?.let {
                 getValueMap(it).forEach { aliasToVal ->
@@ -34,31 +42,41 @@ class ValueMap(
         }
     }
 
-    fun getValues(alias: String): Map<String, String> {
-        return values[alias] ?: throw IllegalArgumentException("alias does not exist: $alias")
+    fun getValues(alias: String): Map<String, String>? {
+        return values[alias]
     }
 
-    fun addNewValue(path: String, alias: String, values: Map<String, String>): String? {
+    fun addNewValue(path: String, alias: String, newValues: Map<String, String>): String? {
         if (leavesMap.containsKey(path)) {
             return "This path already exist"
+        }
+        if (!pathReg.matches(path)) {
+            return "Path contains illegal symbols"
+        }
+        if (!aliasReg.matches(alias)) {
+            return "Alias contains illegal symbols"
         }
         WriteCommandAction.runWriteCommandAction(project) {
             addLineToFile("\"$path\": \"{{ $alias }}\"", templateFile)
             templateFile.sortFile()
-            values.entries.forEach {
-                addLineToFile(valueLine(alias, it.value), getVFile(it.key))
-                getVFile(it.key).sortFile()
-            }
+            newValues.entries.filter {
+                !values.contains(alias) || !values[alias]!!.contains(it.key)
+            }.associate { it.key to it.value }
+                .toMap().forEach {
+                    addLineToFile(valueLine(alias, it.value), getVFile(it.key))
+                    getVFile(it.key).sortFile()
+                    this.values.putIfAbsent(alias, mutableMapOf())
+                    this.values[alias]?.put(it.key, it.value)
+                }
         }
         addNode(path, alias)
-        this.values[alias] = values.toMutableMap()
         zkTree.updateUI()
         return null
     }
 
     private fun addNode(path: String, alias: String) {
         var currentNode = root
-        for(p in path.split('/')) {
+        for (p in path.split('/')) {
             if (p.isBlank() || p == root.nodeName) {
                 continue
             }

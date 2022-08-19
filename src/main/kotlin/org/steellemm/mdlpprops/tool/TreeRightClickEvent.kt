@@ -1,6 +1,5 @@
 package org.steellemm.mdlpprops.tool
 
-import com.intellij.openapi.ui.Messages
 import org.steellemm.mdlpprops.ui.NewLeafDialog
 import org.steellemm.mdlpprops.ui.PropsNode
 import java.awt.event.ActionEvent
@@ -8,7 +7,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
 
-class TreeRightClickEvent(private val tree: JTree, private val dialog: NewLeafDialog): MouseAdapter() {
+class TreeRightClickEvent(private val tree: JTree, private val dialog: NewLeafDialog) : MouseAdapter() {
 
     private val menu: JPopupMenu
 

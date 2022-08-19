@@ -15,6 +15,8 @@ class NewLeafDialog(
     lateinit var path: JTextField
     lateinit var table1: JTable
 
+    private val reg = Regex("[/-]")
+
     init {
         contentPane = content
         isModal = true
@@ -42,7 +44,7 @@ class NewLeafDialog(
         if (path.isBlank()) {
             return ""
         }
-        val alias = path.replace('/', '_')
+        val alias = path.replace(reg, "_")
         if (alias.first() == '_') {
             return alias.substring(1)
         }
@@ -53,7 +55,7 @@ class NewLeafDialog(
         val values = IntRange(0, table1.model.rowCount - 1)
             .associate { envList[it] to
                     if (table1.model.getValueAt(it, 1) == null)
-                        ""
+                        "NOnode"
                     else table1.model.getValueAt(it, 1).toString()
         }
         val warn = valueMap.addNewValue(path.text, aliasField.text, values)
