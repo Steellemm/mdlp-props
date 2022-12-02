@@ -13,7 +13,10 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description>Plugin for altrenative view and fast adding MDLP parametres</description>
+    <description>
+        Plugin for altrenative view and fast adding MDLP parametres
+        To open - go to View->Tool windows->MDLP Props
+    </description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -27,7 +30,7 @@
                 id="Props View"
                 secondary="true"
                 icon="AllIcons.General.Modified"
-                anchor="bottom"
+                anchor="right"
                 factoryClass="org.steellemm.mdlpprops.tool.PropsWindowFactory"/>
         <applicationService
                 serviceImplementation="org.steellemm.mdlpprops.settings.AppSettingsState"/>

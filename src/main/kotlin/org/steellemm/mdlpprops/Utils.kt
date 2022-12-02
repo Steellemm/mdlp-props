@@ -17,11 +17,18 @@ import kotlin.streams.asSequence
 
 fun getStateInstance(): AppSettingsState = ApplicationManager.getApplication().getService(AppSettingsState::class.java)
 
+/**
+ * Добавляет дочернюю ноду к переданной. Если такая нода уже есть, то возвращает существующую
+ */
 fun PropsNode.addPropNode(nodeName: String): PropsNode {
     val child = this.children().asSequence().map { it as PropsNode }.find { it.nodeName == nodeName }
     if (child == null) {
         val propsNode = PropsNode(nodeName, this.path + '/' + nodeName)
-        this.add(propsNode)
+        val nodes = (this.children().asSequence().map { it as PropsNode } + propsNode)
+            .sortedBy { it.nodeName }
+            .toList()
+        this.removeAllChildren()
+        nodes.forEach { this.add(it) }
         return propsNode
     }
     return child
@@ -110,6 +117,9 @@ fun getTreeFromTemplate(stream: InputStream, root: PropsNode): MutableMap<String
     return leavesMap
 }
 
+/**
+ * Вычитывает файл в стрим пар ключ-значение
+ */
 fun readYamlFile(inputStream: InputStream): Stream<Pair<String, String>> {
     return BufferedReader(InputStreamReader(inputStream)).lines()
         .filter { it.isNotBlank() }

@@ -21,8 +21,8 @@ class ValueMap(
     private val leavesMap: MutableMap<String, PropsNode> = mutableMapOf()
     val root: PropsNode = PropsNode("mdlp")
 
-    private val pathReg = Regex("[a-zA-Z/\\-_]*")
-    private val aliasReg = Regex("[a-zA-Z_]*")
+    private val pathReg = Regex("[a-zA-Z/\\-_\\d\\[\\]]*")
+    private val aliasReg = Regex("\\w*")
 
     init {
         reload()
@@ -74,12 +74,16 @@ class ValueMap(
         return null
     }
 
+    /**
+     * Добавляет ноду в дерево для отображения
+     */
     private fun addNode(path: String, alias: String) {
         var currentNode = root
         for (p in path.split('/')) {
             if (p.isBlank() || p == root.nodeName) {
                 continue
             }
+            this.values.remove(currentNode.alias)
             currentNode = currentNode.addPropNode(p)
         }
         currentNode.alias = alias

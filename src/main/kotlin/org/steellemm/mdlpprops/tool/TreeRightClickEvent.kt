@@ -21,7 +21,7 @@ class TreeRightClickEvent(private val tree: JTree, private val dialog: NewLeafDi
                 }))
             }
         }
-        menu.add("Add leaf") {
+        menu.add("Add node") {
             dialog.isVisible = true
         }
     }
@@ -33,9 +33,6 @@ class TreeRightClickEvent(private val tree: JTree, private val dialog: NewLeafDi
                 return
             }
             val node = paths.last().lastPathComponent as PropsNode
-            if (node.isLeaf) {
-                return
-            }
             dialog.loadNode(node)
             menu.show(tree, e.x, e.y)
         }

@@ -15,7 +15,8 @@ class NewLeafDialog(
     lateinit var path: JTextField
     lateinit var table1: JTable
 
-    private val reg = Regex("[/-]")
+    private val charactersForChange = Regex("[\\[\\]/-]")
+    private val dash = Regex("_+")
 
     init {
         contentPane = content
@@ -44,9 +45,12 @@ class NewLeafDialog(
         if (path.isBlank()) {
             return ""
         }
-        val alias = path.replace(reg, "_")
+        var alias = path.replace(charactersForChange, "_").replace(dash, "_")
         if (alias.first() == '_') {
-            return alias.substring(1)
+            alias = alias.substring(1)
+        }
+        if (alias.last() == '_') {
+            alias = alias.substring(0, alias.length - 1)
         }
         return alias
     }
